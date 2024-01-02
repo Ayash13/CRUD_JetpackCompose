@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -81,15 +83,17 @@ fun History(firestore: FirebaseFirestore) {
 
             Spacer(modifier = Modifier.height(15.dp))
 
-            if (orders.isNotEmpty()) {
-                orders.forEach { order ->
-                    HistoryItem(order = order)
+            Column (modifier = Modifier.verticalScroll(rememberScrollState())) {
+                if (orders.isNotEmpty()) {
+                    orders.forEach { order ->
+                        HistoryItem(order = order)
+                    }
+                } else {
+                    Text(
+                        text = "No Orders Yet",
+                        modifier = Modifier.padding(16.dp)
+                    )
                 }
-            } else {
-                Text(
-                    text = "No Orders Yet",
-                    modifier = Modifier.padding(16.dp)
-                )
             }
         }
     }
@@ -147,6 +151,7 @@ fun HistoryItem(order: Map<String, Any>) {
                         modifier = Modifier.padding(horizontal = 10.dp)
                     )
                     LazyRow(
+                        userScrollEnabled = true,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(15.dp), horizontalArrangement = Arrangement.SpaceBetween
