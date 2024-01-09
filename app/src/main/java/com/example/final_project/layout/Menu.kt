@@ -431,7 +431,50 @@ fun MenuItem(menu: MenuData, addToCart: (MenuData, Int) -> Unit, onDeleteItem: (
                         ),
                     contentScale = ContentScale.Crop
                 )
-
+                Box(
+                    modifier = Modifier
+                        .padding(10.dp)
+                        .height(30.dp)
+                        .width(70.dp)
+                        .align(Alignment.TopEnd)
+                        .clip(RoundedCornerShape(topEnd = 15.dp, bottomStart = 15.dp))
+                        .border(
+                            width = 1.dp,
+                            color = Color.Black,
+                            shape = RoundedCornerShape(topEnd = 15.dp, bottomStart = 15.dp)
+                        )
+                        .background(Color(0xFFFFBCB7))
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.outline_close_24),
+                            contentDescription = "Delete",
+                            modifier = Modifier
+                                .size(25.dp)
+                                .padding(start = 10.dp)
+                                .clickable { onDeleteItem() },
+                        )
+                        Divider(
+                            color = Color.Black,
+                            thickness = 1.dp,
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(1.dp)
+                        )
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.outline_edit_24),
+                            contentDescription = "Edit",
+                            modifier = Modifier
+                                .size(25.dp)
+                                .padding(end = 10.dp)
+                                .clickable { },
+                        )
+                    }
+                }
             }
         }
 
@@ -447,7 +490,7 @@ fun MenuItem(menu: MenuData, addToCart: (MenuData, Int) -> Unit, onDeleteItem: (
             )
 
             Text(
-                text = "Rp $formattedPrice", // Display the formatted price
+                text = "Rp $formattedPrice", // Display the formatted pricethe
                 modifier = Modifier.padding(bottom = 4.dp)
             )
 
