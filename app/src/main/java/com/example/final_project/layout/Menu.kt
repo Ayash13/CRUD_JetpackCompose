@@ -149,7 +149,13 @@ fun MenuListScreen(onClickSignout: () -> Unit) {
         ) {
             items(menus.size) { index ->
                 val menu = menus[index]
-                MenuItem(menu = menu, addToCart = addToCart)
+                MenuItem(menu = menu, addToCart = addToCart, onDeleteItem = {
+                    scope.launch {
+                        // Delete the menu item from Firestore and refresh the menu list
+                        menus = deleteMenuFromFirestore(menu)
+                        Toast.makeText(context, "Menu deleted", Toast.LENGTH_SHORT).show()
+                    }
+                })
             }
         }
     }
@@ -390,7 +396,7 @@ fun AppBar(
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun MenuItem(menu: MenuData, addToCart: (MenuData, Int) -> Unit) {
+fun MenuItem(menu: MenuData, addToCart: (MenuData, Int) -> Unit, onDeleteItem: () -> Unit) {
     var quantity by remember { mutableIntStateOf(0) }
     val formattedPrice: String = NumberFormat.getNumberInstance(Locale("id", "ID"))
         .format(menu.harga)
@@ -425,50 +431,7 @@ fun MenuItem(menu: MenuData, addToCart: (MenuData, Int) -> Unit) {
                         ),
                     contentScale = ContentScale.Crop
                 )
-                Box(
-                    modifier = Modifier
-                        .padding(10.dp)
-                        .height(30.dp)
-                        .width(70.dp)
-                        .align(Alignment.TopEnd)
-                        .clip(RoundedCornerShape(topEnd = 15.dp, bottomStart = 15.dp))
-                        .border(
-                            width = 1.dp,
-                            color = Color.Black,
-                            shape = RoundedCornerShape(topEnd = 15.dp, bottomStart = 15.dp)
-                        )
-                        .background(Color(0xFFFFBCB7))
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.outline_close_24),
-                            contentDescription = "Delete",
-                            modifier = Modifier
-                                .size(25.dp)
-                                .padding(start = 10.dp)
-                                .clickable { },
-                        )
-                        Divider(
-                            color = Color.Black,
-                            thickness = 1.dp,
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .width(1.dp)
-                        )
-                        Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.outline_edit_24),
-                            contentDescription = "Edit",
-                            modifier = Modifier
-                                .size(25.dp)
-                                .padding(end = 10.dp)
-                                .clickable { },
-                        )
-                    }
-                }
+
             }
         }
 
@@ -543,5 +506,26 @@ fun MenuItem(menu: MenuData, addToCart: (MenuData, Int) -> Unit) {
             }
         }
 
+    }
+}
+
+suspend fun deleteMenuFromFirestore(menu: MenuData): List<MenuData> {
+    val firestore = FirebaseFirestore.getInstance()
+    return withContext(Dispatchers.IO) {
+        try {
+            firestore.collection("menu")
+                .whereEqualTo("Nama", menu.nama)
+                .get()
+                .await()
+                .documents
+                .forEach { document ->
+                    document.reference.delete()
+                }
+            // Return the updated menu list after deletion
+            FetchMenusFromFirestore()
+        } catch (e: Exception) {
+            // Handle exceptions or errors
+            emptyList()
+        }
     }
 }
