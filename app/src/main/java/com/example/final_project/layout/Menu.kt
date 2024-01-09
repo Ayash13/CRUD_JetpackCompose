@@ -2,17 +2,26 @@ package com.example.final_project.layout
 
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -43,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
@@ -57,7 +67,10 @@ import com.example.final_project.data.FetchMenusFromFirestore
 import com.example.final_project.data.MenuData
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -70,6 +83,7 @@ fun MenuListScreen(onClickSignout: () -> Unit) {
     var menus by remember { mutableStateOf<List<MenuData>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     val (cartItems, setCartItems) = remember { mutableStateOf<List<CartItem>>(emptyList()) }
     var showDialog by remember { mutableStateOf(false) }
@@ -86,6 +100,7 @@ fun MenuListScreen(onClickSignout: () -> Unit) {
             setCartItems(cartItems + newCartItem)
         }
     }
+
 
     LaunchedEffect(Unit) {
         // Fetch menus from Firestore initially
@@ -139,6 +154,7 @@ fun MenuListScreen(onClickSignout: () -> Unit) {
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -283,7 +299,11 @@ fun AppBar(
                                                     // Dismiss the dialog
                                                     showDialog = false
                                                     onDismissDialog()
-                                                    Toast.makeText(context, "Order Success", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Order Success",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
                                                 }
                                                 .addOnFailureListener {
                                                     // Handle any errors that may occur
@@ -368,6 +388,7 @@ fun AppBar(
 }
 
 
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun MenuItem(menu: MenuData, addToCart: (MenuData, Int) -> Unit) {
     var quantity by remember { mutableIntStateOf(0) }
@@ -388,91 +409,139 @@ fun MenuItem(menu: MenuData, addToCart: (MenuData, Int) -> Unit) {
         border = BorderStroke(1.dp, Color.Black),
     ) {
         Column {
-            Image(
-                painter = rememberAsyncImagePainter(menu.imageUrl),
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .padding(10.dp)
-                    .clip(RoundedCornerShape(15.dp)),
-                contentScale = ContentScale.Crop
-            )
-
-            Column(
-                modifier = Modifier.padding(top = 5.dp, bottom = 5.dp, start = 10.dp, end = 10.dp)
-            ) {
-                Spacer(modifier = Modifier.height(5.dp))
-
-                Text(
-                    text = menu.nama,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 4.dp)
+            Box() {
+                Image(
+                    painter = rememberAsyncImagePainter(menu.imageUrl),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp)
+                        .padding(10.dp)
+                        .clip(RoundedCornerShape(15.dp))
+                        .border(
+                            width = 1.dp,
+                            color = Color.Black,
+                            shape = RoundedCornerShape(15.dp)
+                        ),
+                    contentScale = ContentScale.Crop
                 )
-
-                Text(
-                    text = "Rp $formattedPrice", // Display the formatted price
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-
-                Spacer(modifier = Modifier.height(5.dp))
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    IconButton(
-                        onClick = { if (quantity > 1) quantity-- },
-                        modifier = Modifier.size(40.dp),
-                    ) {
-                        Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.baseline_remove_circle_outline_24),
-                            contentDescription = "Decrement"
+                Box(
+                    modifier = Modifier
+                        .padding(10.dp)
+                        .height(30.dp)
+                        .width(70.dp)
+                        .align(Alignment.TopEnd)
+                        .clip(RoundedCornerShape(topEnd = 15.dp, bottomStart = 15.dp))
+                        .border(
+                            width = 1.dp,
+                            color = Color.Black,
+                            shape = RoundedCornerShape(topEnd = 15.dp, bottomStart = 15.dp)
                         )
-                    }
-
-                    Text(
-                        text = quantity.toString(),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-
-                    IconButton(
-                        onClick = { quantity++ },
-                        modifier = Modifier.size(40.dp),
+                        .background(Color(0xFFFFBCB7))
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Icon(
-                            imageVector = ImageVector.vectorResource(id = R.drawable.baseline_add_circle_outline_24),
-                            contentDescription = "Increment"
+                            imageVector = ImageVector.vectorResource(id = R.drawable.outline_close_24),
+                            contentDescription = "Delete",
+                            modifier = Modifier
+                                .size(25.dp)
+                                .padding(start = 10.dp)
+                                .clickable { },
+                        )
+                        Divider(
+                            color = Color.Black,
+                            thickness = 1.dp,
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .width(1.dp)
+                        )
+                        Icon(
+                            imageVector = ImageVector.vectorResource(id = R.drawable.outline_edit_24),
+                            contentDescription = "Edit",
+                            modifier = Modifier
+                                .size(25.dp)
+                                .padding(end = 10.dp)
+                                .clickable { },
                         )
                     }
                 }
+            }
+        }
 
-                OutlinedButton(
-                    onClick = {
-                        // Add the selected item to the cart with its quantity
-                        addToCart(menu, quantity)
-                        // Toast
-                        Toast.makeText(context, "Added to cart", Toast.LENGTH_SHORT).show()
-                        quantity = 0 // Reset the quantity after adding to the cart
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = Color.Black,
-                        containerColor = Color(0xFFADD6B8),
-                    ),
-                    border = BorderStroke(1.dp, Color.Black),
+        Column(
+            modifier = Modifier.padding(top = 5.dp, bottom = 5.dp, start = 10.dp, end = 10.dp)
+        ) {
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Text(
+                text = menu.nama,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+
+            Text(
+                text = "Rp $formattedPrice", // Display the formatted price
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconButton(
+                    onClick = { if (quantity > 1) quantity-- },
+                    modifier = Modifier.size(40.dp),
                 ) {
-                    Text("Order", fontWeight = FontWeight.Bold)
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = R.drawable.baseline_remove_circle_outline_24),
+                        contentDescription = "Decrement"
+                    )
+                }
+
+                Text(
+                    text = quantity.toString(),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+
+                IconButton(
+                    onClick = { quantity++ },
+                    modifier = Modifier.size(40.dp),
+                ) {
+                    Icon(
+                        imageVector = ImageVector.vectorResource(id = R.drawable.baseline_add_circle_outline_24),
+                        contentDescription = "Increment"
+                    )
                 }
             }
 
+            OutlinedButton(
+                onClick = {
+                    // Add the selected item to the cart with its quantity
+                    addToCart(menu, quantity)
+                    // Toast
+                    Toast.makeText(context, "Added to cart", Toast.LENGTH_SHORT).show()
+                    quantity = 0 // Reset the quantity after adding to the cart
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Color.Black,
+                    containerColor = Color(0xFFADD6B8),
+                ),
+                border = BorderStroke(1.dp, Color.Black),
+            ) {
+                Text("Order", fontWeight = FontWeight.Bold)
+            }
         }
+
     }
 }
-
-
-
