@@ -60,6 +60,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.final_project.R
 import com.example.final_project.data.CartItem
@@ -78,7 +80,7 @@ import java.util.Locale
 
 
 @Composable
-fun MenuListScreen(onClickSignout: () -> Unit) {
+fun MenuListScreen(onClickSignout: () -> Unit,  onEditItem: (MenuData) -> Unit, navController: NavController ) {
     val currentUser = FirebaseAuth.getInstance().currentUser
     var menus by remember { mutableStateOf<List<MenuData>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
@@ -149,13 +151,20 @@ fun MenuListScreen(onClickSignout: () -> Unit) {
         ) {
             items(menus.size) { index ->
                 val menu = menus[index]
-                MenuItem(menu = menu, addToCart = addToCart, onDeleteItem = {
-                    scope.launch {
-                        // Delete the menu item from Firestore and refresh the menu list
-                        menus = deleteMenuFromFirestore(menu)
-                        Toast.makeText(context, "Menu deleted", Toast.LENGTH_SHORT).show()
-                    }
-                })
+                MenuItem(
+                    menu = menu, addToCart = addToCart,
+                    onDeleteItem = {
+                        scope.launch {
+                            // Delete the menu item from Firestore and refresh the menu list
+                            menus = deleteMenuFromFirestore(menu)
+                            Toast.makeText(context, "Menu deleted", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    onEditItem = {
+                        onEditItem(menu)
+                    },
+                    navController = navController
+                )
             }
         }
     }
@@ -396,7 +405,13 @@ fun AppBar(
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun MenuItem(menu: MenuData, addToCart: (MenuData, Int) -> Unit, onDeleteItem: () -> Unit) {
+fun MenuItem(
+    menu: MenuData,
+    addToCart: (MenuData, Int) -> Unit,
+    onDeleteItem: () -> Unit,
+    onEditItem: (MenuData) -> Unit,
+    navController: NavController
+) {
     var quantity by remember { mutableIntStateOf(0) }
     val formattedPrice: String = NumberFormat.getNumberInstance(Locale("id", "ID"))
         .format(menu.harga)
@@ -471,7 +486,10 @@ fun MenuItem(menu: MenuData, addToCart: (MenuData, Int) -> Unit, onDeleteItem: (
                             modifier = Modifier
                                 .size(25.dp)
                                 .padding(end = 10.dp)
-                                .clickable { },
+                                .clickable {
+                                    onEditItem(menu)
+                                    navController.navigate(MainNavItem.AddData.route)
+                                },
                         )
                     }
                 }

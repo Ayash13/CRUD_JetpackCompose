@@ -17,7 +17,8 @@ suspend fun FetchMenusFromFirestore(): List<MenuData> {
                 doc.getDouble("Harga") ?: 0.0,
                 doc.getString("ImageUrl") ?: "",
                 doc.getString("Nama") ?: "",
-                doc.getString("Kategori") ?: ""
+                doc.getString("Kategori") ?: "",
+                doc.getString("documentId") ?: ""
             )
         }
         menuList

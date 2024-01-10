@@ -25,8 +25,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -40,7 +38,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,45 +57,32 @@ import java.io.IOException
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.toSize
-import com.google.firebase.auth.FirebaseAuth
+import com.example.final_project.data.MenuData
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddData() {
+fun AddData(selectedMenu: MenuData?, onAddOrUpdate: (MenuData) -> Unit) {
 
     var imageUri by remember { mutableStateOf<Uri?>(null) }
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
     var namaMakanan by remember { mutableStateOf("") }
     var harga by remember { mutableStateOf("") }
-    // the expanded state of the Text Field
     var mExpanded by remember { mutableStateOf(false) }
 
-    // Create a list of cities
     val mCategory = listOf("Makanan", "Minuman", "Snack")
 
-    // Create a string value to store the selected city
     var selectedCategory by remember { mutableStateOf("") }
 
     var textFieldSize by remember { mutableStateOf(Size.Zero) }
@@ -111,17 +95,6 @@ fun AddData() {
 
     val context = LocalContext.current
 
-    val launcherCamera = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture(),
-        onResult = { success ->
-            if (success) {
-                imageUri?.let {
-                    bitmap = context.getBitmapFromUri(it)
-                }
-            }
-        }
-    )
-
     val launcherGallery = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = { uri ->
@@ -131,8 +104,6 @@ fun AddData() {
             }
         }
     )
-
-    var dialogOpen by remember { mutableStateOf(false) }
 
     OutlinedCard(
         modifier = Modifier
@@ -157,7 +128,7 @@ fun AddData() {
                     .border(1.dp, Color.Black, shape = RoundedCornerShape(10))
                     .background(color = Color(0xFFDDDDDD), shape = RoundedCornerShape(5.dp))
                     .clickable {
-                        dialogOpen = true
+                        launcherGallery.launch("image/*")
                     }
             ) {
                 if (bitmap != null) {
@@ -168,14 +139,8 @@ fun AddData() {
                         contentScale = ContentScale.Crop
                     )
                 }
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(text = "Click To Add Image")
+                else{
+                    Text(text = "Click To Add Image", modifier = Modifier.align(Alignment.Center))
                 }
             }
             Spacer(modifier = Modifier.height(30.dp))
@@ -258,7 +223,8 @@ fun AddData() {
                 modifier = Modifier
                     .background(
                         color = Color.White,
-                    ).clip(shape = RoundedCornerShape(10.dp))
+                    )
+                    .clip(shape = RoundedCornerShape(10.dp))
 
                     .width(with(LocalDensity.current) { textFieldSize.width.toDp() })
             ) {
@@ -272,7 +238,6 @@ fun AddData() {
 
                 }
             }
-
             OutlinedButton(
                 onClick = {
                     // Check if all necessary data is present before saving
@@ -282,9 +247,9 @@ fun AddData() {
                             bitmap!!,
                             namaMakanan,
                             selectedCategory,
-                            harga.toDouble()
+                            harga.toDouble(),
                         )
-                        //clear fields
+                        // Clear fields
                         imageUri = null
                         bitmap = null
                         namaMakanan = ""
@@ -305,56 +270,6 @@ fun AddData() {
             ) {
                 Text("Add Data", fontWeight = FontWeight.Bold)
             }
-
-            if (dialogOpen) {
-                AlertDialog(
-                    onDismissRequest = { dialogOpen = false },
-                    content = {
-                        OutlinedCard(
-                            elevation = CardDefaults.cardElevation(
-                                hoveredElevation = 10.dp
-                            )
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .height(150.dp)
-                                    .padding(20.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = "Choose Image Source"
-                                )
-                                Spacer(modifier = Modifier.height(10.dp))
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .wrapContentWidth(Alignment.CenterHorizontally)
-                                        .padding(16.dp),
-                                    horizontalArrangement = Arrangement.SpaceEvenly
-                                ) {
-                                    Button(
-                                        onClick = {
-                                            launcherCamera.launch(null)
-                                            dialogOpen = false
-                                        }
-                                    ) {
-                                        Text(text = "Camera")
-                                    }
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Button(
-                                        onClick = {
-                                            launcherGallery.launch("image/*")
-                                            dialogOpen = false
-                                        }
-                                    ) {
-                                        Text(text = "Gallery")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                )
-            }
         }
     }
 }
@@ -369,7 +284,6 @@ fun Context.getBitmapFromUri(uri: Uri): Bitmap? {
     }
 }
 
-// Function to upload image to Firebase Storage, get the download URL, and save data to Firestore
 fun uploadAndSaveImage(
     bitmap: Bitmap,
     namaMakanan: String,
@@ -394,7 +308,6 @@ fun uploadAndSaveImage(
     }
 }
 
-// Function to save data to Firestore
 fun saveDataToFirestore(
     imageUrl: String,
     namaMakanan: String,
@@ -407,8 +320,20 @@ fun saveDataToFirestore(
         "ImageUrl" to imageUrl,
         "Nama" to namaMakanan,
         "Kategori" to selectedCategory,
-        "Harga" to harga
+        "Harga" to harga,
+        "documentId" to ""
     )
 
-    menuCollection.add(menuData)
+    val newDocRef = menuCollection.add(menuData)
+    newDocRef.addOnSuccessListener { documentReference ->
+        val documentId = documentReference.id
+        // Update the 'documentId' field in Firestore with the generated document ID
+        documentReference.update("documentId", documentId)
+            .addOnSuccessListener {
+                // Handle success if needed
+            }
+            .addOnFailureListener { e ->
+                // Handle failure if needed
+            }
+    }
 }
