@@ -240,9 +240,26 @@ fun AddData(selectedMenu: MenuData?, onAddOrUpdate: (MenuData) -> Unit) {
             }
             OutlinedButton(
                 onClick = {
-                    // Check if all necessary data is present before saving
-                    if (imageUri != null && namaMakanan.isNotEmpty() && selectedCategory.isNotEmpty() && harga.isNotEmpty()) {
-                        // Call function to upload and save data to Firebase
+                    if (selectedMenu != null && selectedMenu.documentId.isNotEmpty()) {
+                        updateAndSaveImage(
+                            selectedMenu.documentId,
+                            bitmap!!,
+                            namaMakanan,
+                            selectedCategory,
+                            harga.toDouble()
+                        )
+
+                        onAddOrUpdate(
+                            MenuData(
+                                harga.toDouble(),
+                                imageUri.toString(),
+                                namaMakanan,
+                                selectedCategory,
+                                selectedMenu.documentId,
+                            )
+                        )
+                        Toast.makeText(context, "Data Updated", Toast.LENGTH_SHORT).show()
+                    } else {
                         uploadAndSaveImage(
                             bitmap!!,
                             namaMakanan,
@@ -268,7 +285,10 @@ fun AddData(selectedMenu: MenuData?, onAddOrUpdate: (MenuData) -> Unit) {
                 ),
                 border = BorderStroke(1.dp, Color.Black),
             ) {
-                Text("Add Data", fontWeight = FontWeight.Bold)
+                Text(
+                    if (selectedMenu != null) "Update Data" else "Add Data",
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
