@@ -105,6 +105,23 @@ fun AddData(selectedMenu: MenuData?, onAddOrUpdate: (MenuData) -> Unit) {
         }
     )
 
+    if (selectedMenu != null) {
+        // Load existing data into the fields for update
+        if (imageUri == null) {
+            imageUri = Uri.parse(selectedMenu.imageUrl)
+            bitmap = context.getBitmapFromUri(imageUri!!)
+        }
+        if (namaMakanan.isEmpty()) {
+            namaMakanan = selectedMenu.nama
+        }
+        if (harga.isEmpty()) {
+            harga = selectedMenu.harga.toString()
+        }
+        if (selectedCategory.isEmpty()) {
+            selectedCategory = selectedMenu.kategori
+        }
+    }
+
     OutlinedCard(
         modifier = Modifier
             .fillMaxSize()
