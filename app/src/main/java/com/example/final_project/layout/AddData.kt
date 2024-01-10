@@ -337,3 +337,35 @@ fun saveDataToFirestore(
             }
     }
 }
+
+fun updateDataInFirestore(
+    documentId: String,
+    imageUrl: String,
+    namaMakanan: String,
+    selectedCategory: String,
+    harga: Double
+) {
+    val firestore = FirebaseFirestore.getInstance()
+    val menuCollection = firestore.collection("menu")
+
+    if (documentId.isNotEmpty()) {
+        val menuDocument = menuCollection.document(documentId)
+        val menuData = hashMapOf(
+            "ImageUrl" to imageUrl,
+            "Nama" to namaMakanan,
+            "Kategori" to selectedCategory,
+            "Harga" to harga,
+            "documentId" to documentId
+        )
+
+        menuDocument.set(menuData)
+            .addOnSuccessListener {
+                // Handle success if needed
+            }
+            .addOnFailureListener { e ->
+                // Handle failure if needed
+            }
+    } else {
+        // Handle the case where the documentId is empty or invalid
+    }
+}
