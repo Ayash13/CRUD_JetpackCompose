@@ -284,6 +284,30 @@ fun Context.getBitmapFromUri(uri: Uri): Bitmap? {
     }
 }
 
+fun updateAndSaveImage(
+    documentId: String,
+    bitmap: Bitmap,
+    namaMakanan: String,
+    selectedCategory: String,
+    harga: Double
+) {
+    val imageName = "$namaMakanan-$selectedCategory"
+
+    val storageRef: StorageReference = FirebaseStorage.getInstance().reference
+    val imagesRef: StorageReference = storageRef.child("images/$imageName.jpg")
+
+    val baos = ByteArrayOutputStream()
+    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
+    val data = baos.toByteArray()
+
+    val uploadTask = imagesRef.putBytes(data)
+    uploadTask.addOnSuccessListener { taskSnapshot ->
+        imagesRef.downloadUrl.addOnSuccessListener { uri ->
+            updateDataInFirestore(documentId, uri.toString(), namaMakanan, selectedCategory, harga)
+        }
+    }
+}
+
 fun uploadAndSaveImage(
     bitmap: Bitmap,
     namaMakanan: String,
