@@ -27,8 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.final_project.History.History
 import com.example.final_project.R
 import com.example.final_project.data.MenuData
+import com.example.final_project.layout.AddData.AddData
+import com.example.final_project.layout.Menu.MenuListScreen
 import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
@@ -50,9 +53,17 @@ fun MainPage(onClickSignout: () -> Unit) {
         composable(MainNavItem.AddData.route) {
             AddData(
                 selectedMenu = selectedMenu,
-                onAddOrUpdate = { updatedMenu ->
+                onAddOrUpdate = {
                     selectedMenu = null // Reset the selectedMenu after adding or updating
-                    navController.popBackStack() // Navigate back when data is added or updated
+                    navController.navigate(
+                        route = MainNavItem.Menu.route,
+                        builder = {
+                            popUpTo(MainNavItem.Menu.route) {
+                                inclusive = true
+                            }
+                        }
+                    )
+
                 }
             )
         }

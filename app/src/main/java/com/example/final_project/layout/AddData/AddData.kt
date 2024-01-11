@@ -1,9 +1,7 @@
-package com.example.final_project.layout
+package com.example.final_project.layout.AddData
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -13,10 +11,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,21 +20,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,26 +44,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import java.io.IOException
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import com.example.final_project.data.MenuData
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
-import com.google.firebase.storage.StorageReference
-import java.io.ByteArrayOutputStream
+import com.example.final_project.data.updateAndSaveImage
+import com.example.final_project.data.uploadAndSaveImage
 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -308,125 +298,5 @@ fun AddData(selectedMenu: MenuData?, onAddOrUpdate: (MenuData) -> Unit) {
                 )
             }
         }
-    }
-}
-
-fun Context.getBitmapFromUri(uri: Uri): Bitmap? {
-    return try {
-        val inputStream = contentResolver.openInputStream(uri)
-        BitmapFactory.decodeStream(inputStream)
-    } catch (e: IOException) {
-        e.printStackTrace()
-        null
-    }
-}
-
-fun updateAndSaveImage(
-    documentId: String,
-    bitmap: Bitmap,
-    namaMakanan: String,
-    selectedCategory: String,
-    harga: Double
-) {
-    val imageName = "$namaMakanan-$selectedCategory"
-
-    val storageRef: StorageReference = FirebaseStorage.getInstance().reference
-    val imagesRef: StorageReference = storageRef.child("images/$imageName.jpg")
-
-    val baos = ByteArrayOutputStream()
-    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
-    val data = baos.toByteArray()
-
-    val uploadTask = imagesRef.putBytes(data)
-    uploadTask.addOnSuccessListener { taskSnapshot ->
-        imagesRef.downloadUrl.addOnSuccessListener { uri ->
-            updateDataInFirestore(documentId, uri.toString(), namaMakanan, selectedCategory, harga)
-        }
-    }
-}
-
-fun uploadAndSaveImage(
-    bitmap: Bitmap,
-    namaMakanan: String,
-    selectedCategory: String,
-    harga: Double
-) {
-    val imageName = "$namaMakanan-$selectedCategory" // Constructing image name
-
-    val storageRef: StorageReference = FirebaseStorage.getInstance().reference
-    val imagesRef: StorageReference = storageRef.child("images/$imageName.jpg")
-
-    val baos = ByteArrayOutputStream()
-    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos)
-    val data = baos.toByteArray()
-
-    val uploadTask = imagesRef.putBytes(data)
-    uploadTask.addOnSuccessListener { taskSnapshot ->
-        // Image uploaded successfully, get download URL
-        imagesRef.downloadUrl.addOnSuccessListener { uri ->
-            saveDataToFirestore(uri.toString(), namaMakanan, selectedCategory, harga)
-        }
-    }
-}
-
-fun saveDataToFirestore(
-    imageUrl: String,
-    namaMakanan: String,
-    selectedCategory: String,
-    harga: Double
-) {
-    val firestore = FirebaseFirestore.getInstance()
-    val menuCollection = firestore.collection("menu")
-    val menuData = hashMapOf(
-        "ImageUrl" to imageUrl,
-        "Nama" to namaMakanan,
-        "Kategori" to selectedCategory,
-        "Harga" to harga,
-        "documentId" to ""
-    )
-
-    val newDocRef = menuCollection.add(menuData)
-    newDocRef.addOnSuccessListener { documentReference ->
-        val documentId = documentReference.id
-        // Update the 'documentId' field in Firestore with the generated document ID
-        documentReference.update("documentId", documentId)
-            .addOnSuccessListener {
-                // Handle success if needed
-            }
-            .addOnFailureListener { e ->
-                // Handle failure if needed
-            }
-    }
-}
-
-fun updateDataInFirestore(
-    documentId: String,
-    imageUrl: String,
-    namaMakanan: String,
-    selectedCategory: String,
-    harga: Double
-) {
-    val firestore = FirebaseFirestore.getInstance()
-    val menuCollection = firestore.collection("menu")
-
-    if (documentId.isNotEmpty()) {
-        val menuDocument = menuCollection.document(documentId)
-        val menuData = hashMapOf(
-            "ImageUrl" to imageUrl,
-            "Nama" to namaMakanan,
-            "Kategori" to selectedCategory,
-            "Harga" to harga,
-            "documentId" to documentId
-        )
-
-        menuDocument.set(menuData)
-            .addOnSuccessListener {
-                // Handle success if needed
-            }
-            .addOnFailureListener { e ->
-                // Handle failure if needed
-            }
-    } else {
-        // Handle the case where the documentId is empty or invalid
     }
 }
